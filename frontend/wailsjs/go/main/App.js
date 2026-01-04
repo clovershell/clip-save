@@ -58,6 +58,14 @@ export function DetectQRCode(arg1) {
   return window['go']['main']['App']['DetectQRCode'](arg1);
 }
 
+export function DisableScriptHTTPService(arg1) {
+  return window['go']['main']['App']['DisableScriptHTTPService'](arg1);
+}
+
+export function EnableScriptHTTPService(arg1) {
+  return window['go']['main']['App']['EnableScriptHTTPService'](arg1);
+}
+
 export function EnterItem() {
   return window['go']['main']['App']['EnterItem']();
 }
@@ -98,6 +106,10 @@ export function GetFileInfo(arg1) {
   return window['go']['main']['App']['GetFileInfo'](arg1);
 }
 
+export function GetScriptHTTPURL(arg1) {
+  return window['go']['main']['App']['GetScriptHTTPURL'](arg1);
+}
+
 export function GetStatistics() {
   return window['go']['main']['App']['GetStatistics']();
 }
@@ -128,6 +140,10 @@ export function HttpRequest(arg1, arg2, arg3, arg4) {
 
 export function IsSayPlaying() {
   return window['go']['main']['App']['IsSayPlaying']();
+}
+
+export function IsScriptHTTPServiceEnabled(arg1) {
+  return window['go']['main']['App']['IsScriptHTTPServiceEnabled'](arg1);
 }
 
 export function NextItem() {
@@ -192,6 +208,10 @@ export function SetDockIconVisibility(arg1) {
 
 export function SetLanguage(arg1) {
   return window['go']['main']['App']['SetLanguage'](arg1);
+}
+
+export function SetScriptHTTPResult(arg1, arg2) {
+  return window['go']['main']['App']['SetScriptHTTPResult'](arg1, arg2);
 }
 
 export function SetWindowAlwaysOnTop(arg1) {

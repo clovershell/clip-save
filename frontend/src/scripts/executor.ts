@@ -3,7 +3,7 @@
  */
 
 import { EventsOn } from '../../wailsjs/runtime/runtime'
-import { GetEnabledUserScriptsByTrigger, GetClipboardItemByID, HttpRequest, GetUserScriptsByIDs, CopyTextToClipboard } from '../../wailsjs/go/main/App'
+import { GetEnabledUserScriptsByTrigger, GetClipboardItemByID, HttpRequest, GetUserScriptsByIDs, CopyTextToClipboard, GetUserScriptByID, SetScriptHTTPResult } from '../../wailsjs/go/main/App'
 import { common } from '../../wailsjs/go/models'
 import { ElMessageBox } from 'element-plus'
 
@@ -360,11 +360,66 @@ async function handleScriptExecution(data: {
 }
 
 /**
+ * 处理 HTTP 请求的脚本执行
+ */
+async function handleHTTPScriptExecution(data: {
+  requestID: string
+  scriptID: string
+  content: string
+}) {
+  const { requestID, scriptID, content } = data
+
+  try {
+    // 获取脚本
+    const script = await GetUserScriptByID(scriptID)
+    if (!script) {
+      await SetScriptHTTPResult(requestID, JSON.stringify({
+        error: '脚本不存在'
+      }))
+      return
+    }
+
+    // 构造模拟的 ClipboardItem
+    const item = common.ClipboardItem.createFrom({
+      ID: `http-${Date.now()}`,
+      Content: content,
+      ContentType: 'Text',
+      ContentHash: '',
+      ImageData: [], // number[] 类型
+      FilePaths: '', // string 类型
+      FileInfo: '',
+      Timestamp: new Date().toISOString(),
+      Source: 'HTTP',
+      CharCount: content.length,
+      WordCount: 0,
+      IsFavorite: 0, // number 类型，0 表示 false
+      OCRText: '',
+    })
+
+    // 执行脚本
+    const result = await executeScriptInBrowser(script, item)
+
+    // 返回结果给后端
+    await SetScriptHTTPResult(requestID, JSON.stringify({
+      returnValue: result.returnValue,
+      error: result.error,
+    }))
+  } catch (error: any) {
+    console.error('处理 HTTP 脚本执行失败:', error)
+    await SetScriptHTTPResult(requestID, JSON.stringify({
+      error: error.message || String(error)
+    }))
+  }
+}
+
+/**
  * 初始化脚本执行器
  */
 export function initScriptExecutor() {
   // 监听脚本执行事件
   EventsOn('clipboard.script.execute', handleScriptExecution)
+  // 监听 HTTP 脚本执行事件
+  EventsOn('script.http.execute', handleHTTPScriptExecution)
   console.log('✅ 脚本执行器已初始化')
 }
 

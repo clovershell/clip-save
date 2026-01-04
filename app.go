@@ -157,6 +157,10 @@ func (a *App) startup(ctx context.Context) {
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
 	log.Println("Wails 应用关闭")
+	// 停止脚本 HTTP 服务器
+	if err := common.StopScriptHTTPServer(); err != nil {
+		log.Printf("停止脚本 HTTP 服务器失败: %v", err)
+	}
 	if err := common.CloseDB(); err != nil {
 		log.Printf("关闭数据库失败: %v", err)
 	}
@@ -1002,7 +1006,43 @@ func (a *App) SaveUserScript(scriptJSON string) error {
 
 // DeleteUserScript 删除用户脚本
 func (a *App) DeleteUserScript(id string) error {
+	// 如果脚本的 HTTP 服务已启用，先禁用它
+	if common.IsScriptHTTPServiceEnabled(id) {
+		if err := common.DisableScriptHTTPService(id); err != nil {
+			log.Printf("禁用脚本 HTTP 服务失败: %v", err)
+		}
+	}
 	return common.DeleteUserScript(id)
+}
+
+// EnableScriptHTTPService 启用脚本的 HTTP 服务（供前端调用）
+func (a *App) EnableScriptHTTPService(scriptID string) error {
+	return common.EnableScriptHTTPService(scriptID)
+}
+
+// DisableScriptHTTPService 禁用脚本的 HTTP 服务（供前端调用）
+func (a *App) DisableScriptHTTPService(scriptID string) error {
+	return common.DisableScriptHTTPService(scriptID)
+}
+
+// IsScriptHTTPServiceEnabled 检查脚本的 HTTP 服务是否已启用（供前端调用）
+func (a *App) IsScriptHTTPServiceEnabled(scriptID string) (bool, error) {
+	return common.IsScriptHTTPServiceEnabled(scriptID), nil
+}
+
+// GetScriptHTTPURL 获取脚本的 HTTP 服务 URL（供前端调用）
+func (a *App) GetScriptHTTPURL(scriptID string) (string, error) {
+	return common.GetScriptHTTPURL(scriptID)
+}
+
+// SetScriptHTTPResult 设置脚本执行结果（供前端调用）
+func (a *App) SetScriptHTTPResult(requestID string, resultJSON string) error {
+	var result common.ScriptHTTPResult
+	if err := json.Unmarshal([]byte(resultJSON), &result); err != nil {
+		return fmt.Errorf("解析结果失败: %v", err)
+	}
+	common.SetScriptHTTPResult(requestID, result)
+	return nil
 }
 
 // HttpRequest 通用的 HTTP 请求代理函数（用于绕过 CORS 限制）

@@ -88,6 +88,30 @@
           </template>
         </el-table-column>
         <el-table-column
+          :label="$t('settings.scripts.httpService')"
+          width="120"
+        >
+          <template #default="{ row }">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <el-switch
+                v-model="row.HttpServiceEnabled"
+                @change="handleHttpServiceChange(row)"
+                :loading="updatingHttpServiceMap.get(row.ID) || false"
+              />
+              <el-button
+                v-if="row.HttpServiceEnabled && row.HttpServiceURL"
+                size="small"
+                text
+                type="primary"
+                :icon="DocumentCopy"
+                @click="copyHttpServiceURL(row.HttpServiceURL)"
+                :title="row.HttpServiceURL"
+                style="padding: 4px;"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
           :label="$t('common.actions')"
           width="134"
           fixed="right"
@@ -126,7 +150,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Rank } from "@element-plus/icons-vue";
+import { Rank, Link, DocumentCopy } from "@element-plus/icons-vue";
 import Sortable from "sortablejs";
 import { useI18n } from "vue-i18n";
 import {
@@ -136,6 +160,10 @@ import {
   OpenURL,
   GetUserScriptByID,
   SaveUserScript,
+  EnableScriptHTTPService,
+  DisableScriptHTTPService,
+  IsScriptHTTPServiceEnabled,
+  GetScriptHTTPURL,
 } from "../../../../wailsjs/go/main/App";
 import { common } from "../../../../wailsjs/go/models";
 import ScriptEditor from "./ScriptEditor.vue";
@@ -151,9 +179,15 @@ const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
 
+// 扩展 UserScript 类型以包含 HTTP 服务相关属性
+interface ExtendedUserScript extends common.UserScript {
+  HttpServiceEnabled?: boolean;
+  HttpServiceURL?: string;
+}
+
 const visible = ref(false);
 const loading = ref(false);
-const scripts = ref<common.UserScript[]>([]);
+const scripts = ref<ExtendedUserScript[]>([]);
 const showScriptEditor = ref(false);
 const editingScriptId = ref<string | undefined>();
 const showOnlineScriptList = ref(false);
@@ -163,6 +197,7 @@ let scrollContainer: HTMLElement | null = null;
 let rafId: number | null = null;
 // 跟踪每个脚本的更新状态
 const updatingEnabledMap = ref<Map<string, boolean>>(new Map());
+const updatingHttpServiceMap = ref<Map<string, boolean>>(new Map());
 const isFirstLoad = ref(true);
 watch(
   () => props.modelValue,
@@ -212,6 +247,26 @@ async function loadScripts() {
       showOnlineScriptList.value = true;
       isFirstLoad.value = false;
     }
+    // 并行加载每个脚本的 HTTP 服务状态和 URL（性能优化）
+    const httpServicePromises = scripts.value.map(async (script) => {
+      try {
+        const enabled = await IsScriptHTTPServiceEnabled(script.ID);
+        script.HttpServiceEnabled = enabled;
+        if (enabled) {
+          try {
+            script.HttpServiceURL = await GetScriptHTTPURL(script.ID);
+          } catch (err) {
+            script.HttpServiceURL = '';
+          }
+        } else {
+          script.HttpServiceURL = '';
+        }
+      } catch (err) {
+        script.HttpServiceEnabled = false;
+        script.HttpServiceURL = '';
+      }
+    });
+    await Promise.all(httpServicePromises);
     // 加载完成后初始化拖拽
     await nextTick();
     initSortable();
@@ -391,6 +446,43 @@ async function handleDeleteScript(id: string, name: string) {
 
 function handleScriptSaved() {
   loadScripts();
+}
+
+function copyHttpServiceURL(url: string) {
+  navigator.clipboard.writeText(url).then(() => {
+    ElMessage.success(t('settings.scripts.httpServiceURLCopied') || 'URL 已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.error(t('settings.scripts.httpServiceURLCopyFailed') || '复制失败')
+  })
+}
+
+async function handleHttpServiceChange(row: ExtendedUserScript) {
+  updatingHttpServiceMap.value.set(row.ID, true);
+  try {
+    if (row.HttpServiceEnabled) {
+      await EnableScriptHTTPService(row.ID);
+      try {
+        row.HttpServiceURL = await GetScriptHTTPURL(row.ID);
+        ElMessage.success(t("settings.scripts.httpServiceEnabled") || "HTTP 服务已启用");
+      } catch (err) {
+        row.HttpServiceURL = '';
+      }
+    } else {
+      await DisableScriptHTTPService(row.ID);
+      row.HttpServiceURL = '';
+      ElMessage.success(t("settings.scripts.httpServiceDisabled") || "HTTP 服务已禁用");
+    }
+  } catch (error: any) {
+    // 恢复开关状态
+    row.HttpServiceEnabled = !row.HttpServiceEnabled;
+    ElMessage.error(
+      `${t("settings.scripts.httpServiceError") || "HTTP 服务操作失败"}: ${
+        error.message || error
+      }`
+    );
+  } finally {
+    updatingHttpServiceMap.value.set(row.ID, false);
+  }
 }
 
 async function handleEnabledChange(row: common.UserScript) {

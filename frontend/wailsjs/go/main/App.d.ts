@@ -30,6 +30,10 @@ export function DeleteUserScript(arg1:string):Promise<void>;
 
 export function DetectQRCode(arg1:string):Promise<boolean>;
 
+export function DisableScriptHTTPService(arg1:string):Promise<void>;
+
+export function EnableScriptHTTPService(arg1:string):Promise<void>;
+
 export function EnterItem():Promise<void>;
 
 export function ForceQuit():Promise<void>;
@@ -50,6 +54,8 @@ export function GetEnabledUserScriptsByTrigger(arg1:string):Promise<Array<common
 
 export function GetFileInfo(arg1:string):Promise<Array<common.FileInfo>>;
 
+export function GetScriptHTTPURL(arg1:string):Promise<string>;
+
 export function GetStatistics():Promise<Record<string, any>>;
 
 export function GetSupportedLanguages():Promise<Array<string>>;
@@ -65,6 +71,8 @@ export function HideWindowAndQuit():Promise<void>;
 export function HttpRequest(arg1:string,arg2:string,arg3:string,arg4:string):Promise<string>;
 
 export function IsSayPlaying():Promise<boolean>;
+
+export function IsScriptHTTPServiceEnabled(arg1:string):Promise<boolean>;
 
 export function NextItem():Promise<void>;
 
@@ -97,6 +105,8 @@ export function SearchItem():Promise<void>;
 export function SetDockIconVisibility(arg1:number):Promise<void>;
 
 export function SetLanguage(arg1:string):Promise<void>;
+
+export function SetScriptHTTPResult(arg1:string,arg2:string):Promise<void>;
 
 export function SetWindowAlwaysOnTop(arg1:boolean):Promise<void>;
 
