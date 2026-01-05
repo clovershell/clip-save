@@ -53,16 +53,15 @@ if (item.ContentType !== "Text") {
         error: result.error,
       };
     }
-  
-    // 返回 returnValue 或直接返回结果
-    if (result.returnValue !== undefined) {
+
+    if (result.code == 0 && result.data){
       // 如果 returnValue 是字符串，直接返回；否则转换为字符串
-      return typeof result.returnValue === "string" 
-        ? result.returnValue 
-        : JSON.stringify(result.returnValue);
+      return typeof result.data === "string" 
+        ? result.data 
+        : JSON.stringify(result.data);
     }
   
-    // 如果没有 returnValue，返回整个结果对象（转换为字符串）
+    // 如果没有,返回整个结果对象（转换为字符串）
     return JSON.stringify(result);
   } catch (error) {
     return {

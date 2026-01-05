@@ -343,7 +343,8 @@ func handleScriptHTTPRequest(w http.ResponseWriter, r *http.Request) {
 			})
 		} else {
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"returnValue": result.ReturnValue,
+				"code": 0,
+				"data": result.ReturnValue,
 			})
 		}
 	case <-time.After(30 * time.Second):
